@@ -66,7 +66,9 @@ class MyViewController : UICollectionViewController, UICollectionViewDelegateFlo
 
         let item = items[indexPath.row]
         cell.titleLabel.text = item.title
+        cell.compressedLabel.text = "Compressed \(item.title)"
         cell.contentView.backgroundColor = UIColor.randomColor()
+        cell.expanded(item.expanded)
 
         return cell
     }
@@ -87,8 +89,10 @@ class MyViewController : UICollectionViewController, UICollectionViewDelegateFlo
 
         layout.selectedCellIndexPath = layout.selectedCellIndexPath == indexPath ? nil : indexPath
 
+        let cell = collectionView.cellForItem(at: indexPath) as! CustomCell
+
         UIView.animate(
-            withDuration: 0.4,
+            withDuration: 1.4,
             delay: 0.0,
             usingSpringWithDamping: 0.65,
             initialSpringVelocity: 0.5,
@@ -97,6 +101,8 @@ class MyViewController : UICollectionViewController, UICollectionViewDelegateFlo
                 var item = self.items[indexPath.row]
                 item.expanded = !item.expanded
                 self.items[indexPath.row] = item
+
+                cell.expanded(item.expanded)
 
                 self.collectionView?.collectionViewLayout.invalidateLayout()
                 self.collectionView?.layoutIfNeeded()
@@ -123,7 +129,12 @@ final class CustomCell: UICollectionViewCell {
     }
 
     private let containerView = UIView()
+    private let compressedContentView = UIView()
+    private let dot = UIView()
+    private let dotSize: CGFloat = 50
+
     let titleLabel = ViewFactory.label()
+    let compressedLabel = ViewFactory.label()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -141,8 +152,17 @@ final class CustomCell: UICollectionViewCell {
         contentView.addSubview(containerView)
         containerView.translatesAutoresizingMaskIntoConstraints = false
 
+        contentView.addSubview(compressedContentView)
+        compressedContentView.translatesAutoresizingMaskIntoConstraints = false
+        compressedContentView.alpha = 0
+
+        dot.frame = CGRect(x: 0, y: 0, width: dotSize, height: dotSize)
+        dot.layer.cornerRadius = dotSize / 2
+        dot.backgroundColor = UIColor.white
+        contentView.addSubview(dot)
+
         containerView.addSubview(titleLabel)
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        compressedContentView.addSubview(compressedLabel)
 
         NSLayoutConstraint.activate([
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -153,8 +173,36 @@ final class CustomCell: UICollectionViewCell {
             titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             titleLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-            titleLabel.heightAnchor.constraint(equalToConstant: 250)
+            titleLabel.heightAnchor.constraint(equalToConstant: 250),
+
+            compressedContentView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            compressedContentView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            compressedContentView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            compressedContentView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+
+            compressedLabel.topAnchor.constraint(equalTo: compressedContentView.topAnchor),
+            compressedLabel.leadingAnchor.constraint(equalTo: compressedContentView.leadingAnchor),
+            compressedLabel.trailingAnchor.constraint(equalTo: compressedContentView.trailingAnchor),
+            compressedLabel.bottomAnchor.constraint(equalTo: compressedContentView.bottomAnchor),
+
             ])
+    }
+
+    func expanded(_ expanded: Bool) {
+
+        containerView.alpha = expanded ? 1 : 0
+        compressedContentView.alpha = expanded ? 0 : 1
+
+        dot.center = dotCenter(for: expanded)
+    }
+
+    func dotCenter(for expanded: Bool) -> CGPoint {
+
+        if expanded == false {
+            return CGPoint(x: dotSize, y: dotSize)
+        } else {
+            return CGPoint(x: bounds.midX, y: dotSize)
+        }
     }
 
     private struct ViewFactory {
@@ -162,6 +210,7 @@ final class CustomCell: UICollectionViewCell {
         static func label() -> UILabel {
             let label = UILabel()
             label.textAlignment = .center
+            label.translatesAutoresizingMaskIntoConstraints = false
 
             return label
         }
